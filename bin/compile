@@ -6,6 +6,7 @@ set -Eeuo pipefail
 BUILD_DIR="${1}"
 CACHE_DIR="${2}"
 # ENV_DIR="${3}"
+THIS_DIR="$(dirname "$(readlink -f "${0}")")"
 
 panic() {
     echo "FATAL: ${*}" | indent
@@ -70,14 +71,16 @@ main() {
 
     step "Extracting SigSci Agent..."
     layer_dir="${BUILD_DIR}/sigsci"
-    bin_dir="${layer_dir}/bin"
-    mkdir --parent "${bin_dir}"
+    dest_bin_dir="${layer_dir}/bin"
+    mkdir --parent "${dest_bin_dir}"
     (
         umask ugo=r
-        tar --extract --gzip --to-stdout --file "${download_path}" "sigsci-agent" > "${bin_dir}/sigsci-agent"
+        tar --extract --gzip --to-stdout --file "${download_path}" "sigsci-agent" > "${dest_bin_dir}/sigsci-agent"
     )
-    chmod +x "${bin_dir}/sigsci-agent"
-    "${bin_dir}/sigsci-agent" --version | indent
+    chmod +x "${dest_bin_dir}/sigsci-agent"
+    "${dest_bin_dir}/sigsci-agent" --version | indent
+
+    cp "${THIS_DIR}/start" "${dest_bin_dir}"
 }
 
 main
