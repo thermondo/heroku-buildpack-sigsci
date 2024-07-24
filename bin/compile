@@ -62,7 +62,7 @@ main() {
     if [ -f "${download_path}" ]; then
         step "Found SigSci Agent ${version} in download cache"
     else
-        agent_url="https://dl.signalsciences.net/sigsci-agent/${SIGSCI_RELEASE}/linux/sigsci-agent_${SIGSCI_RELEASE}.tar.gz"
+        agent_url="https://dl.signalsciences.net/sigsci-agent/${version}/linux/sigsci-agent_${version}.tar.gz"
         step "Downloading SigSci Agent from ${agent_url}..."
         curl_download "${agent_url}" > "${download_path}.tmp"
         mv "${download_path}.tmp" "${download_path}"
