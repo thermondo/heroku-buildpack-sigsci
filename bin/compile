@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+# https://devcenter.heroku.com/articles/buildpack-api#bin-compile
+
+BUILD_DIR="${1}"
+CACHE_DIR="${2}"
+# ENV_DIR="${3}"
+
+panic() {
+    echo "FATAL: ${*}" | indent
+    exit 1
+}
+
+step() {
+    echo "-----> ${*}"
+}
+
+info() {
+    echo "${*}" | indent
+}
+
+indent() {
+    sed 's/^/       /'
+}
+
+curl_download() {
+    local url="${1}"
+    curl --proto '=https' --tlsv1.2 \
+        --silent \
+        --show-error \
+        --fail \
+        --location "${url}"
+}
+
+latest_version() {
+    curl_download "https://dl.signalsciences.net/sigsci-agent/VERSION"
+}
+
+main() {
+    local version download_path layer_dir agent_url
+
+    if [ "${SIGSCI_RELEASE:-}" == "" ]; then
+        step "Asking Signal Sciences for latest agent version..."
+        version="$(latest_version)"
+
+        # make sure we have a version of the agent we've tested with (currently 4.x)
+        case "${version}" in
+            4.*)
+                info "SigSci Agent version: ${version}"
+            ;;
+            *)
+                panic "Expected SigSci Agent version 4.x -- got ${version}"
+            ;;
+        esac
+    else
+        version="${SIGSCI_RELEASE}"
+    fi
+
+    mkdir --parent "${CACHE_DIR}"
+    download_path="${CACHE_DIR}/${version}.tar.gz"
+    if [ -f "${download_path}" ]; then
+        step "Found SigSci Agent ${version} in download cache"
+    else
+        agent_url="https://dl.signalsciences.net/sigsci-agent/${SIGSCI_RELEASE}/linux/sigsci-agent_${SIGSCI_RELEASE}.tar.gz"
+        step "Downloading SigSci Agent from ${agent_url}..."
+        curl_download "${agent_url}" > "${download_path}.tmp"
+        mv "${download_path}.tmp" "${download_path}"
+    fi
+
+    step "Extracting SigSci Agent..."
+    layer_dir="${BUILD_DIR}/sigsci"
+    bin_dir="${layer_dir}/bin"
+    mkdir --parent "${bin_dir}"
+    (
+        umask ugo=r
+        tar --extract --gzip --to-stdout --file "${download_path}" "sigsci-agent" > "${bin_dir}/sigsci-agent"
+    )
+    chmod +x "${bin_dir}/sigsci-agent"
+    "${bin_dir}/sigsci-agent" --version | indent
+}
+
+main
