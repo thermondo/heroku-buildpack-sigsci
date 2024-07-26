@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+# https://devcenter.heroku.com/articles/buildpack-api#bin-release
+
+# BUILD_DIR="${1}"
+
+echo "--- {}"
