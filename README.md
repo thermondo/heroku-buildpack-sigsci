@@ -11,19 +11,23 @@ implementation based on our [sigsci-container project](https://github.com/thermo
 
 ## Quick Start
 
-Add the buildpack to your Heroku app:
-
-```bash
-heroku buildpacks:add https://github.com/thermondo/heroku-buildpack-sigsci/releases/download/v0.0.1/buildpack.tar.gz
-```
-
-🚨 _It's highly recommended that you use the **release tarball** URL instead of the GitHub repo URL._
-
-Then in your app's [Procfile](https://devcenter.heroku.com/articles/procfile) add something like
-this:
+Get the `buildpack.tar.gz` download URL from [the latest release](https://github.com/thermondo/heroku-buildpack-sigsci/releases/latest).
+It should look something like:
 
 ```plaintext
-web: ./sigsci/bin/start <the command you want to execute>
+https://github.com/thermondo/heroku-buildpack-sigsci/releases/download/LATEST_VERSION_NUMBER/buildpack.tar.gz
+```
+
+Then run:
+
+```bash
+heroku buildpacks:add <the-buildpack-url>
+```
+
+Then in your app's [Procfile](https://devcenter.heroku.com/articles/procfile) add something like this:
+
+```plaintext
+web: sigsci-wrap <the command you want to execute>
 ```
 
 The buildpack is configured the same way the container is (same environment variables, etc.). See
