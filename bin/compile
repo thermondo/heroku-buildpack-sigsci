@@ -87,10 +87,9 @@ EOF
     dest_bin_dir="${layer_dir}/bin"
     mkdir --parent "${dest_bin_dir}"
     tar --extract --gzip --to-stdout --file "${download_path}" "sigsci-agent" > "${dest_bin_dir}/sigsci-agent"
-    chmod ugo=rx "${dest_bin_dir}/sigsci-agent"
-    "${dest_bin_dir}/sigsci-agent" --version | indent
     cp "${THIS_DIR}/sigsci-wrap" "${dest_bin_dir}"
     chmod -R ugo=rx "${dest_bin_dir}"
+    "${dest_bin_dir}/sigsci-agent" --version | indent
 
     step "Installing profile.d script"
     local profile_dir="${BUILD_DIR}/.profile.d"
