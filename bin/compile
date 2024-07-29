@@ -83,14 +83,21 @@ EOF
     fi
 
     step "Extracting SigSci Agent..."
-    layer_dir="${BUILD_DIR}/sigsci"
+    layer_dir="${BUILD_DIR}/.sigsci"
     dest_bin_dir="${layer_dir}/bin"
     mkdir --parent "${dest_bin_dir}"
     tar --extract --gzip --to-stdout --file "${download_path}" "sigsci-agent" > "${dest_bin_dir}/sigsci-agent"
-    chmod ugo=rx "${dest_bin_dir}/sigsci-agent"
+    cp "${THIS_DIR}/sigsci-wrap" "${dest_bin_dir}"
+    chmod -R ugo=rx "${dest_bin_dir}"
     "${dest_bin_dir}/sigsci-agent" --version | indent
 
-    cp "${THIS_DIR}/start" "${dest_bin_dir}"
+    step "Installing profile.d script"
+    local profile_dir="${BUILD_DIR}/.profile.d"
+    mkdir --parent "${profile_dir}"
+    cat <<EOF > "${profile_dir}/sigsci.sh"
+export PATH="\${HOME}/.sigsci/bin:\${PATH}"
+EOF
+    chmod ugo=rx "${profile_dir}/sigsci.sh"
 }
 
 main

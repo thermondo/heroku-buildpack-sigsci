@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2317  # shellcheck thinks our trap has unreachable code
 #
-# usage: ./sigsci/bin/start <the command to execute>
+# usage: sigsci-wrap <the command to execute>
 #
 # this script performs the following steps:
 #
@@ -114,7 +114,7 @@ wait_for_response
 
 # child process is running and responding to HTTP requests. almost done!
 log "starting sigsci-agent..."
-./sigsci/bin/sigsci-agent --config "${CONFIG_FILE}" &
+sigsci-agent --config "${CONFIG_FILE}" &
 
 # wait for ANY background job to exit; either the child process or the sigsci agent.
 wait -n
