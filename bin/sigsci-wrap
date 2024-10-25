@@ -43,7 +43,7 @@ if [ "${SIGSCI_STATUS}" == "disabled" ]; then
     exit ${?}
 fi
 
-APP_PORT="${APP_PORT:-2000}"
+export APP_PORT="${APP_PORT:-2000}"
 
 if [ "${APP_PORT}" -eq "${PORT}" ]; then
     log "FATAL: PORT env variable is set to ${PORT}, which is reserved for the upstream application."
