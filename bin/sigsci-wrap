@@ -6,10 +6,10 @@
 # this script performs the following steps:
 #
 # 1. run the given command as a background job
-# 2. wait for an HTTP response at `SIGSCI_WAIT_ENDPOINT`
-# 3. run the sigsci agent, forwarding requests from `PORT` to `APP_PORT`
+# 2. wait for an HTTP response at `SIGSCI_BUILDPACK_WAIT_ENDPOINT`
+# 3. run the sigsci agent, forwarding requests from `PORT` to `SIGSCI_BUILDPACK_UPSTREAM_PORT`
 #
-# however if the `SIGSCI_STATUS` environment variable is set to `disabled`
+# however if the `SIGSCI_BUILDPACK_STATUS` environment variable is set to `disabled`
 # then this script will just execute step 1 only.
 #
 # SIGINT, SIGTERM signals that this process receives will be forwarded to
@@ -28,12 +28,12 @@ if [ "${#}" -eq 0 ]; then
 fi
 
 # check if sigsci is disabled. if so, just execute the command and be done with it!
-SIGSCI_STATUS="${SIGSCI_STATUS:-enabled}"
-if [ "${SIGSCI_STATUS}" == "disabled" ]; then
+SIGSCI_BUILDPACK_STATUS="${SIGSCI_BUILDPACK_STATUS:-enabled}"
+if [ "${SIGSCI_BUILDPACK_STATUS}" == "disabled" ]; then
     if [ "${PORT:-}" != "" ]; then
         # we still expect our container to listen on ${PORT}, but since we're not running the
         # sigsci agent, we need to tell the upstream app to run on that port instead.
-        export APP_PORT="${PORT}"
+        export SIGSCI_BUILDPACK_UPSTREAM_PORT="${PORT}"
     fi
 
     # `exec` replaces this shell with the given command. this makes it so we don't need to
@@ -43,11 +43,11 @@ if [ "${SIGSCI_STATUS}" == "disabled" ]; then
     exit ${?}
 fi
 
-export APP_PORT="${APP_PORT:-2000}"
+export SIGSCI_BUILDPACK_UPSTREAM_PORT="${SIGSCI_BUILDPACK_UPSTREAM_PORT:-2000}"
 
-if [ "${APP_PORT}" -eq "${PORT}" ]; then
+if [ "${SIGSCI_BUILDPACK_UPSTREAM_PORT}" -eq "${PORT}" ]; then
     log "FATAL: PORT env variable is set to ${PORT}, which is reserved for the upstream application."
-    log "Consider changing APP_PORT env variable to something that won't conflict."
+    log "Consider changing SIGSCI_BUILDPACK_UPSTREAM_PORT env variable to something that won't conflict."
     exit 1
 fi
 
@@ -61,13 +61,22 @@ fi
 # so the default /etc/sigsci/agent.conf location won't work.
 CONFIG_FILE="$(mktemp)"
 
+# don't require `SIGSCI_BUILDPACK` prefix for ACCESSKEYID and SECRETACCESSKEY
+# those are two common env variables we want to support
+if [ "${SIGSCI_ACCESSKEYID:-}" != "" ]; then
+    SIGSCI_BUILDPACK_ACCESSKEYID="${SIGSCI_ACCESSKEYID}"
+fi
+if [ "${SIGSCI_SECRETACCESSKEY:-}" != "" ]; then
+    SIGSCI_BUILDPACK_SECRETACCESSKEY="${SIGSCI_SECRETACCESSKEY}"
+fi
+
 echo "
-accesskeyid = \"${SIGSCI_ACCESSKEYID}\"
-secretaccesskey = \"${SIGSCI_SECRETACCESSKEY}\"
+accesskeyid = \"${SIGSCI_BUILDPACK_ACCESSKEYID}\"
+secretaccesskey = \"${SIGSCI_BUILDPACK_SECRETACCESSKEY}\"
 
 [revproxy-listener.APP]
 listener = \"http://0.0.0.0:${PORT}\"
-upstreams = \"http://127.0.0.1:${APP_PORT}\"
+upstreams = \"http://127.0.0.1:${SIGSCI_BUILDPACK_UPSTREAM_PORT}\"
 " > "${CONFIG_FILE}"
 
 # start child process in the background, save its PID so we can forward
@@ -88,7 +97,7 @@ trap 'on_signal_received SIGINT' SIGINT
 
 # now that the child process is running, let's spam it with HTTP requests
 # until we get a response
-UPSTREAM_URL="http://127.0.0.1:${APP_PORT}/${SIGSCI_WAIT_ENDPOINT:-}"
+UPSTREAM_URL="http://127.0.0.1:${SIGSCI_BUILDPACK_UPSTREAM_PORT}/${SIGSCI_BUILDPACK_WAIT_ENDPOINT:-}"
 log "waiting for ${UPSTREAM_URL} to respond..."
 
 send_upstream_request() {
@@ -98,7 +107,7 @@ send_upstream_request() {
 }
 
 wait_for_response() {
-    local timeout="${SIGSCI_WAIT_TIMEOUT:-60}"
+    local timeout="${SIGSCI_BUILDPACK_WAIT_TIMEOUT:-60}"
     local timeout_end=$(($(date +%s) + timeout))
 
     while ! send_upstream_request; do
